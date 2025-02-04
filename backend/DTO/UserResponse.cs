@@ -1,6 +1,6 @@
 namespace StatusMonitor.DTO;
 
-public class UserDTO
+public class UserResponse
 {
     public required string DisplayName { get; set; }
     

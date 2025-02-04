@@ -63,32 +63,33 @@ public class Router
             var user = await userManager.FindByEmailAsync(email);
             if (user == null) return Results.Unauthorized();
 
-            return Results.Ok(new UserDTO
+            return Results.Ok(new UserResponse
             {
                 Email = user.Email!,
                 DisplayName = user.DisplayName!,
             });
         });
 
-        app.MapPut("/user/profile", async (UserManager<AppUser> userManager, HttpContext context, UpdateUserDTO updatedUser) =>
-        {
-            var email = context.User.FindFirst(ClaimTypes.Email)?.Value;
-            if (string.IsNullOrEmpty(email)) return Results.Unauthorized();
-
-            var user = await userManager.FindByEmailAsync(email);
-            if (user == null) return Results.Unauthorized();
-
-            user.DisplayName = updatedUser.DisplayName;
-            await userManager.UpdateAsync(user);
-
-            // Update password
-            if (updatedUser is { Password: not null, NewPassword: not null })
+        app.MapPut("/user/profile",
+            async (UserManager<AppUser> userManager, HttpContext context, UpdateUserRequest updatedUser) =>
             {
-                await userManager.ChangePasswordAsync(user, updatedUser.Password, updatedUser.NewPassword);
-            }
+                var email = context.User.FindFirst(ClaimTypes.Email)?.Value;
+                if (string.IsNullOrEmpty(email)) return Results.Unauthorized();
 
-            return Results.Ok();
-        });
+                var user = await userManager.FindByEmailAsync(email);
+                if (user == null) return Results.Unauthorized();
+
+                user.DisplayName = updatedUser.DisplayName;
+                await userManager.UpdateAsync(user);
+
+                // Update password
+                if (updatedUser is { Password: not null, NewPassword: not null })
+                {
+                    await userManager.ChangePasswordAsync(user, updatedUser.Password, updatedUser.NewPassword);
+                }
+
+                return Results.Ok();
+            });
 
         app.MapPost("/auth/logout", async (HttpContext context) =>
         {
@@ -100,26 +101,44 @@ public class Router
         // Anonymous access endpoints
         //
 
-        app.MapPost("/auth/register", [AllowAnonymous] async (RegisterUserDTO register, UserManager<AppUser> userManager) =>
+        app.MapGet("/settings", [AllowAnonymous] async (UserManager<AppUser> userManager) =>
         {
-            // Check if user already exists. You should not do this if your app is publicly available,
-            // and instead verify email addresses, and simply respond with "ok" so people can't fish for emails
-            var existingUser = await userManager.FindByEmailAsync(register.Email);
-            if (existingUser != null) return Results.BadRequest("Email already exists");
-
-            var user = new AppUser
+            // Return system specific information
+            var exists = await userManager.Users.FirstOrDefaultAsync();
+            return Results.Ok(new SettingsResponse
             {
-                Email = register.Email,
-                UserName = register.Email,
-                DisplayName = register.DisplayName!,
-            };
-
-            var result = await userManager.CreateAsync(user, register.Password);
-            return result.Succeeded ? Results.Created() : Results.BadRequest("Problem registering user");
+                RegistrationOpen = exists == null,
+            });
         });
 
+        app.MapPost("/auth/register", [AllowAnonymous]
+            async (RegistrationRequest register, UserManager<AppUser> userManager) =>
+            {
+                // This endpoint only allows for primary account holder registration
+                // and then blocks subsequent requests. This is so that anonymous
+                // users can't register an account, and they can only be created by
+                // authorized users.
+                var exists = await userManager.Users.FirstOrDefaultAsync();
+                if (exists != null) return Results.Forbid();
+
+                // Check if user already exists. You should not do this if your app is publicly available,
+                // and instead verify email addresses, and simply respond with "ok" so people can't fish for emails.
+                var existingUser = await userManager.FindByEmailAsync(register.Email);
+                if (existingUser != null) return Results.BadRequest("Email already exists");
+
+                var user = new AppUser
+                {
+                    Email = register.Email,
+                    UserName = register.Email,
+                    DisplayName = register.DisplayName!,
+                };
+
+                var result = await userManager.CreateAsync(user, register.Password);
+                return result.Succeeded ? Results.Created() : Results.BadRequest("Problem registering user");
+            });
+
         app.MapPost("/auth/login", [AllowAnonymous]
-            async (UserManager<AppUser> userManager, HttpContext context, LoginDTO login) =>
+            async (UserManager<AppUser> userManager, HttpContext context, LoginRequest login) =>
             {
                 var user = await userManager.FindByEmailAsync(login.Email);
                 if (user == null) return Results.Unauthorized();

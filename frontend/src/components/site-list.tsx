@@ -64,7 +64,6 @@ const SiteList = () => {
 
   const groupedStatuses = useMemo(() => {
     if (statuses && sites) {
-      console.debug(statuses);
       sites.map((site) => {
         site.statuses = statuses.filter((status) => status.siteId === site.id);
       });

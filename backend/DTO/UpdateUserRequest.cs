@@ -1,6 +1,6 @@
 namespace StatusMonitor.DTO;
 
-public class UpdateUserDTO
+public class UpdateUserRequest
 {
     public required string DisplayName { get; set; }
 
