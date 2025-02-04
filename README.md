@@ -10,6 +10,8 @@ structure or design of the app. I will revisit those concerns later.
 Right now this app only contains authentication, ability to add monitoring targets using HTTP with different intervals, 
 recording and displaying request statuses and response times. I have a Trello board set up for functionality that I want to build here, but I am adding them when I have time to work on it.
 
-There are plenty of other open source status monitoring apps out there where I've taken some inspiration from, although this idea started from an introduction to Encore. 
+There are plenty of other open source status monitoring apps out there and I've taken some inspiration from them (UI from UpStat), 
+although this idea started from an introduction to [Encore](https://encore.dev/go). Please visit and support these projects.
 
-- 
+- [Uptime Kuma](https://github.com/louislam/uptime-kuma)
+- [UpStat](https://github.com/chamanbravo/upstat)
