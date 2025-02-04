@@ -34,6 +34,9 @@ export default function LoginPage() {
     });
 
     if (response.ok) {
+      toaster.toast({
+        description: "You have successfully signed in",
+      });
       router.push("/");
     } else {
       toaster.toast({

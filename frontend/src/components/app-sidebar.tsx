@@ -1,8 +1,5 @@
 import Link from "next/link";
 import {
-  HiOutlineBell,
-  HiOutlineChartBar,
-  HiOutlineCog,
   HiOutlineHeart,
   HiOutlineUser,
 } from "react-icons/hi";
@@ -19,24 +16,24 @@ export default function AppSidebar() {
       url: "/",
       icon: HiOutlineHeart,
     },
-    {
-      title: "Status pages",
-      isActive: false,
-      url: "/status-pages",
-      icon: HiOutlineChartBar,
-    },
-    {
-      title: "Notifications",
-      isActive: false,
-      url: "/notifications",
-      icon: HiOutlineBell,
-    },
-    {
-      title: "Settings",
-      isActive: false,
-      url: "/settings",
-      icon: HiOutlineCog,
-    },
+    // {
+    //   title: "Status pages",
+    //   isActive: false,
+    //   url: "/status-pages",
+    //   icon: HiOutlineChartBar,
+    // },
+    // {
+    //   title: "Notifications",
+    //   isActive: false,
+    //   url: "/notifications",
+    //   icon: HiOutlineBell,
+    // },
+    // {
+    //   title: "Settings",
+    //   isActive: false,
+    //   url: "/settings",
+    //   icon: HiOutlineCog,
+    // },
     {
       title: "Profile",
       isActive: false,
