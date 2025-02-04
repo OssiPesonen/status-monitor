@@ -1,6 +1,6 @@
 namespace StatusMonitor.DTO;
 
-public class RegisterDTO
+public class RegisterUserDTO
 {
     public required string Email { get; set; }
     

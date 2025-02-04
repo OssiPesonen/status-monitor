@@ -11,9 +11,7 @@ import {
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -35,7 +33,7 @@ const AddSiteDialog = () => {
       interval: number;
       httpMethod?: string;
     }) => {
-      return fetch(`http://localhost:5195/sites`, {
+      return fetch(`${process.env.NEXT_PUBLIC_API_URL}/sites`, {
         method: "POST",
         body: JSON.stringify({
           address: payload.address,
@@ -62,7 +60,7 @@ const AddSiteDialog = () => {
     const payload = {
       address: formData.get("address")?.toString() ?? "",
       name: formData.get("name")?.toString() ?? "",
-      httpMethod: formData.get("http_method")?.toString() ?? null,
+      httpMethod: formData.get("http_method")?.toString() ?? undefined,
       interval:
         formData.get("interval") !== null
           ? parseInt(formData.get("interval")!.toString())

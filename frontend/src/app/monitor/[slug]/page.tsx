@@ -19,13 +19,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
 import {
   ChartConfig,
@@ -50,9 +44,10 @@ const Monitor = () => {
   const { isPending, data } = useQuery<Site>({
     queryKey: [`site-data-${params.slug}`],
     queryFn: () =>
-      fetch(`http://localhost:5195/site/${params.slug}`, { credentials: 'include' }).then((res) =>
-        res.json()
-      ),
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/site/${params.slug}`, {
+        credentials:
+          process.env.NODE_ENV === "production" ? "same-origin" : "include",
+      }).then((res) => res.json()),
   });
 
   const avgResponseTime = useMemo(() => {
@@ -107,7 +102,10 @@ const Monitor = () => {
           const timestamp = new Date(status.time);
           const now = new Date();
           const yesterday = sub(now, { days: 1 });
-          return status.siteStatus === SiteStatus.UP && isWithinInterval(timestamp, { start: yesterday, end: now });
+          return (
+            status.siteStatus === SiteStatus.UP &&
+            isWithinInterval(timestamp, { start: yesterday, end: now })
+          );
         })
         .map((status) => {
           return {
@@ -166,7 +164,8 @@ const Monitor = () => {
                   )}
                   ⊚
                   <span className="ml-2 mr-2 text-muted-foreground">
-                    Checked every {data?.interval !== 1 ? data?.interval : ''} { data?.interval === 1 ? 'minute' : 'minutes' }
+                    Checked every {data?.interval !== 1 ? data?.interval : ""}{" "}
+                    {data?.interval === 1 ? "minute" : "minutes"}
                   </span>
                   ⊚
                   <span className="ml-2 mr-2 text-muted-foreground">
@@ -183,8 +182,14 @@ const Monitor = () => {
           title="Avg. response time (24h)"
           value={`${avgResponseTime.toFixed(0)}ms`}
         />
-        <StatCard title="Uptime (24 hours)" value={`${uptimeWeek.toFixed(2)}%`} />
-        <StatCard title="Uptime (30 days)" value={`${uptimeMonth.toFixed(2)}%`} />
+        <StatCard
+          title="Uptime (24 hours)"
+          value={`${uptimeWeek.toFixed(2)}%`}
+        />
+        <StatCard
+          title="Uptime (30 days)"
+          value={`${uptimeMonth.toFixed(2)}%`}
+        />
       </div>
       <div className="mt-4">
         <ResponseTimeChart chartData={chartDateForResponseTimes} />
@@ -267,7 +272,6 @@ const ResponseTimeChart = ({ chartData }: { chartData: ChartDataPoint[] }) => {
             <Area
               dataKey="responseTime"
               type="natural"
-            
               fill="url(#fillResponsetime)"
               fillOpacity={0.4}
               stroke="hsl(var(--primary))"

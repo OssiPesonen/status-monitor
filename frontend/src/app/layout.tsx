@@ -1,7 +1,8 @@
-'use client'
+"use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "./globals.css";
+import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/theme-provider";
 
 const queryClient = new QueryClient();
@@ -17,6 +18,7 @@ export default function RootLayout({
       <body>
         <QueryClientProvider client={queryClient}>
           <ThemeProvider>
+            <Toaster />
             {children}
           </ThemeProvider>
         </QueryClientProvider>

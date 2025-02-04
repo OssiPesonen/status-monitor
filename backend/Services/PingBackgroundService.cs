@@ -94,14 +94,14 @@ public class PingBackgroundService(IServiceProvider serviceProvider, ILogger<Pin
             timer.Stop();
             // Record failure
             await RecordResponseStatus(db, site.Id, 500, timer.ElapsedMilliseconds, cancellationToken);
-            logger.LogError(ex, "--- Error processing URL: {Url}", site.Address);
+            logger.LogDebug(ex, "--- Error processing URL: {Url}", site.Address);
         }
     }
 
     private async Task RecordResponseStatus(StatusMonitorDb db, int siteId, int statusCode, long responseTime,
         CancellationToken cancellationToken)
     {
-        logger.LogInformation($"--- Recording response status for {siteId}");
+        logger.LogInformation("--- Recording response status for {siteId}", siteId);
 
         // Todo: Support different protocols
         var status = new Status

@@ -13,9 +13,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 
 export default function LoginPage() {
   const router = useRouter();
+  const toaster = useToast();
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -24,17 +26,21 @@ export default function LoginPage() {
     const email = formData.get("email");
     const password = formData.get("password");
 
-    const response = await fetch("http://localhost:5195/auth/login", {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
       method: "POST",
-      credentials: 'include', // This should be set to same-origin in prod
+      credentials: process.env.NODE_ENV === 'production' ? 'same-origin' : 'include',
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
 
     if (response.ok) {
-      router.push("/profile");
+      router.push("/");
     } else {
-      // Handle errors
+      toaster.toast({
+        title: "Invalid credentials",
+        description: "Wrong username or password",
+        variant: "destructive"
+      });
     }
   }
 

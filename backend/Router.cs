@@ -11,32 +11,8 @@ namespace StatusMonitor;
 
 public class Router
 {
-    private const string AuthIndicatorCookieName = "isLoggedIn";
-    
-    // Refresh the authentication indicator cookie for the front-end app
-    // if the user is logged in and a request comes through. The auth cookie
-    // itself has a sliding expiration window already.
-    private static void RefreshAuthSessionCookie(HttpContext context)
-    {
-        var email = context.User.FindFirst(ClaimTypes.Email)?.Value;
-
-        if (!string.IsNullOrEmpty(email))
-        {
-            context.Response.Cookies.Append(AuthIndicatorCookieName, "true", new CookieOptions
-            {
-                HttpOnly = false,
-                Secure = context.Request.IsHttps,
-                SameSite = SameSiteMode.Strict,
-                Path = "/",
-                Domain = "localhost",
-                Expires = DateTime.UtcNow.AddMinutes(60),
-            });
-        }
-    }
-
     public static void AddRoutes(WebApplication app)
     {
-
         app.MapGet("/sites", async (StatusMonitorDb db) => await db.Sites.ToListAsync());
 
         app.MapPost("/sites", async (Site site, StatusMonitorDb db) =>
@@ -49,7 +25,6 @@ public class Router
         app.MapGet("/site/{id}", async (StatusMonitorDb db, int id) =>
         {
             var site = await db.Sites.FindAsync(id);
-
             if (site != null)
             {
                 var statuses = await db.Statuses.Where(s => s.SiteId == site.Id).ToListAsync();
@@ -95,10 +70,29 @@ public class Router
             });
         });
 
+        app.MapPut("/user/profile", async (UserManager<AppUser> userManager, HttpContext context, UpdateUserDTO updatedUser) =>
+        {
+            var email = context.User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email)) return Results.Unauthorized();
+
+            var user = await userManager.FindByEmailAsync(email);
+            if (user == null) return Results.Unauthorized();
+
+            user.DisplayName = updatedUser.DisplayName;
+            await userManager.UpdateAsync(user);
+
+            // Update password
+            if (updatedUser is { Password: not null, NewPassword: not null })
+            {
+                await userManager.ChangePasswordAsync(user, updatedUser.Password, updatedUser.NewPassword);
+            }
+
+            return Results.Ok();
+        });
+
         app.MapPost("/auth/logout", async (HttpContext context) =>
         {
             await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            context.Response.Cookies.Delete(AuthIndicatorCookieName);
             return Results.Ok();
         });
 
@@ -106,7 +100,7 @@ public class Router
         // Anonymous access endpoints
         //
 
-        app.MapPost("/auth/register", [AllowAnonymous] async (RegisterDTO register, UserManager<AppUser> userManager) =>
+        app.MapPost("/auth/register", [AllowAnonymous] async (RegisterUserDTO register, UserManager<AppUser> userManager) =>
         {
             // Check if user already exists. You should not do this if your app is publicly available,
             // and instead verify email addresses, and simply respond with "ok" so people can't fish for emails
@@ -147,24 +141,7 @@ public class Router
                 // Sign in the user (this creates the session)
                 await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, claimsPrincipal);
 
-                // Create a cookie to indicate to the front-end app that the user is signed in
-                context.Response.Cookies.Append(AuthIndicatorCookieName, "true", new CookieOptions
-                {
-                    HttpOnly = false, // Allows JavaScript access
-                    Secure = context.Request.IsHttps,
-                    SameSite = SameSiteMode.Strict,
-                    Domain = "localhost",
-                    Path = "/",
-                    Expires = DateTimeOffset.UtcNow.AddMinutes(60),
-                });
-
                 return Results.Ok();
             });
-
-        app.Use((context, next) =>
-        {
-            RefreshAuthSessionCookie(context);
-            return next(context);
-        });
     }
 }

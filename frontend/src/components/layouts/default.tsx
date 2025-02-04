@@ -1,26 +1,15 @@
 import AppSidebar from "@/components/app-sidebar";
 import { ModeToggle } from "../mode-toggle";
 import { HiOutlineLogout } from "react-icons/hi";
-import { Button } from "../ui/button";
-import { useRouter } from "next/navigation";
+import { buttonVariants } from "../ui/button";
+import Link from "next/link";
 
 export default function Layout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const router = useRouter();
-
-  const handleLogout = async () => {
-    const response = await fetch("http://localhost:5195/auth/logout", {
-      method: "POST",
-      credentials: "include",
-    });
-    if (response.ok) {
-      router.push("/login");
-    }
-  };
-
+  // Todo: The top bar or "header" could be it's own component
   return (
     <div className="page-wrap dark:bg-background min-h-screen min-w-full">
       <div className="container ml-auto mr-auto min-h-screen">
@@ -32,11 +21,14 @@ export default function Layout({
           </div>
           <div className="flex-grow justify-end text-right">
             <ModeToggle />
-            <Button variant="outline" className="ml-4" onClick={handleLogout}>
+            <Link
+              className={buttonVariants({ variant: "outline" })}
+              href="/sign-out"
+            >
               <span className="flex justify-center items-center">
                 <HiOutlineLogout className="mr-2" /> Sign out
               </span>
-            </Button>
+            </Link>
           </div>
         </header>
         <div className="flex">

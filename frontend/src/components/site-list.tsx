@@ -34,20 +34,27 @@ const SiteList = () => {
   const { isPending, data: sites } = useQuery<Site[]>({
     queryKey: [siteDataKey],
     queryFn: () =>
-      fetch("http://localhost:5195/sites", { credentials: 'include' }).then((res) => res.json()),
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/sites`, {
+        credentials:
+          process.env.NODE_ENV === "production" ? "same-origin" : "include",
+      }).then((res) => res.json()),
   });
 
   const { data: statuses } = useQuery<StatusPing[]>({
     queryKey: [statusDataKey],
     queryFn: () =>
-      fetch("http://localhost:5195/statuses", { credentials: 'include' }).then((res) => res.json()),
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/statuses`, {
+        credentials:
+          process.env.NODE_ENV === "production" ? "same-origin" : "include",
+      }).then((res) => res.json()),
   });
 
   const deleteSiteMutation = useMutation({
     mutationFn: (siteId: number) => {
-      return fetch(`http://localhost:5195/site/${siteId}`, {
+      return fetch(`${process.env.NEXT_PUBLIC_API_URL}/site/${siteId}`, {
         method: "DELETE",
-        credentials: 'include'
+        credentials:
+          process.env.NODE_ENV === "production" ? "same-origin" : "include",
       });
     },
     onSuccess: () => {
@@ -85,9 +92,7 @@ const SiteList = () => {
     <>
       <div className="flex sm:items-center">
         <div className="flex-auto text-left">
-          <h1 className="text-xl font-semibold">
-            Monitored systems
-          </h1>
+          <h1 className="text-xl font-semibold">Monitored systems</h1>
         </div>
         <div className="flex-auto text-right">
           <AddSiteDialog />
@@ -123,7 +128,10 @@ const SiteList = () => {
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <span className="ml-2 mr-2">
-                              <HeartBeatIndicator status={site.status} size='small' />
+                              <HeartBeatIndicator
+                                status={site.status}
+                                size="small"
+                              />
                             </span>
                             <Link
                               href={`/monitor/${site.id}`}
