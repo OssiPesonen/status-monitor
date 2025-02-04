@@ -1,4 +1,5 @@
 using StatusMonitor;
+using StatusMonitor.Jobs;
 using StatusMonitor.Services;
 
 const string allowLocalhostOrigin = "_localHostOrigins";
@@ -8,6 +9,7 @@ var connectionString = builder.Configuration.GetConnectionString("Sites") ?? "Da
 
 builder.Services.AddSqlite<StatusMonitorDb>(connectionString);
 builder.Services.AddHostedService<PingBackgroundService>();
+builder.Services.AddCronJob<PurgeDataJob>("0 0 * * *");
 
 builder.Services.AddIdentityServices(builder.Configuration);
 
