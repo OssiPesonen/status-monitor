@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace StatusMonitor.Jobs;
 
-using StatusMonitor.Services.Cron;
+using Services.Cron;
 
 public class PurgeDataJob(IServiceProvider serviceProvider) : ICronJob
 {

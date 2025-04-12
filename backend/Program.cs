@@ -8,7 +8,9 @@ var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("Sites") ?? "Data Source=Sites.db";
 
 builder.Services.AddSqlite<StatusMonitorDb>(connectionString);
-builder.Services.AddHostedService<PingBackgroundService>();
+
+// Scheduled runs
+builder.Services.AddCronJob<PingServicesJob>("*/1 * * * *");
 builder.Services.AddCronJob<PurgeDataJob>("0 0 * * *");
 
 builder.Services.AddIdentityServices(builder.Configuration);

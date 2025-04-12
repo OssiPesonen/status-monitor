@@ -4,7 +4,7 @@ using StatusMonitor.Services.Cron;
 
 namespace StatusMonitor.Services;
 
-public static class CronJobServieExtensions
+public static class CronJobServiceExtensions
 {
     public static IServiceCollection AddCronJob<T>(this IServiceCollection services, string cronExpression)
         where T : class, ICronJob

@@ -13,11 +13,10 @@ public sealed class CronScheduler : BackgroundService
         _serviceProvider = serviceProvider;
         _cronJobs = cronJobs.ToList();
     }
-
-
+    
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // CRON has a precision of 1 minute so create a timer with less than that
+        // CRON has a precision of 1 minute so create a timer with less than that to hit every schedule
         using var tickTimer = new PeriodicTimer(TimeSpan.FromSeconds(30));
         var runMap = new Dictionary<DateTime, List<Type>>();
 
@@ -48,13 +47,14 @@ public sealed class CronScheduler : BackgroundService
     private Dictionary<DateTime, List<Type>> GetJobRuns()
     {
         var runMap = new Dictionary<DateTime, List<Type>>();
-        foreach (var cron in _cronJobs)
+        
+        foreach (var cronJob in _cronJobs)
         {
             var utcNow = DateTime.UtcNow;
-            var runDates = cron.CrontabSchedule.GetNextOccurrences(utcNow, utcNow.AddMinutes(1));
+            var runDates = cronJob.CrontabSchedule.GetNextOccurrences(utcNow, utcNow.AddMinutes(1));
             if (runDates is not null)
             {
-                AddJobRuns(runMap, runDates, cron);
+                AddJobRuns(runMap, runDates, cronJob);
             }
         }
 
@@ -62,17 +62,17 @@ public sealed class CronScheduler : BackgroundService
     }
 
     private static void AddJobRuns(IDictionary<DateTime, List<Type>> runMap, IEnumerable<DateTime> runDates,
-        CronRegistryEntry cron)
+        CronRegistryEntry cronJob)
     {
         foreach (var runDate in runDates)
         {
             if (runMap.TryGetValue(runDate, out var value))
             {
-                value.Add(cron.Type);
+                value.Add(cronJob.Type);
             }
             else
             {
-                runMap[runDate] = new List<Type> { cron.Type };
+                runMap[runDate] = new List<Type> { cronJob.Type };
             }
         }
     }

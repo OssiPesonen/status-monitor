@@ -34,6 +34,23 @@ public class Router
             return site;
         });
 
+        app.MapPut("/site/{id}", async (StatusMonitorDb db, int id, Site updatedSite) =>
+        {
+            var site = await db.Sites.FindAsync(id);
+            if (site == null)
+            {
+                return Results.NotFound();
+            }
+
+            site.Address = updatedSite.Address;
+            site.Interval = updatedSite.Interval;
+            site.Name = updatedSite.Name;
+            site.HttpMethod = updatedSite.HttpMethod;
+            
+            await db.SaveChangesAsync();
+            return Results.Ok();
+        });
+
         app.MapDelete("/site/{id}", async (StatusMonitorDb db, int id) =>
         {
             var site = await db.Sites.FindAsync(id);

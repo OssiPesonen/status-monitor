@@ -1,72 +1,60 @@
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using StatusMonitor.Models;
+using StatusMonitor.Services.Cron;
 
-namespace StatusMonitor.Services;
+namespace StatusMonitor.Jobs;
 
-public class PingBackgroundService(IServiceProvider serviceProvider, ILogger<PingBackgroundService> logger)
-    : BackgroundService
+public class PingServicesJob(IServiceProvider serviceProvider, ILogger<PingServicesJob> logger)
+    : ICronJob
 {
     private static readonly HttpClient HttpClient = new();
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    public async Task Run(CancellationToken stoppingToken)
     {
         logger.LogInformation("--- Starting PingBackgroundService");
-        while (!stoppingToken.IsCancellationRequested)
+        // Fetch all sites in db
+        using var scope = serviceProvider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<StatusMonitorDb>();
+        var sites = await db.Sites.ToListAsync(stoppingToken);
+
+        try
         {
-            // Fetch all sites in db
-            using var scope = serviceProvider.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<StatusMonitorDb>();
-            var sites = await db.Sites.ToListAsync(stoppingToken);
-
-            try
+            var tasks = new List<Task>();
+            foreach (var site in sites)
             {
-                var tasks = new List<Task>();
-                foreach (var site in sites)
+                // Use the most recent status to determine when we need to ping agaion
+                var interval = site.Interval;
+                var status = await db.Statuses
+                    .Where(s => s.SiteId == site.Id)
+                    .OrderByDescending(x => x.Id)
+                    .FirstOrDefaultAsync(stoppingToken);
+
+                if (status != null)
                 {
-                    // Fetch the most recent status update so we know if we need to ping it again
-                    var interval = site.Interval;
-                    var status = await db.Statuses
-                        .Where(s => s.SiteId == site.Id)
-                        .OrderByDescending(x => x.Id)
-                        .FirstOrDefaultAsync(stoppingToken);
-
-                    if (status == null) continue;
-
-                    // Only ping the service if we've gone past the next ping time
                     var nextPing = status.Time + TimeSpan.FromMinutes(interval);
                     if (DateTime.Compare(DateTime.Now, nextPing) > 0)
                     {
                         tasks.Add(ProcessUrlAsync(db, site, stoppingToken));
                     }
                 }
-
-                // Make sure everything has completed before waiting
-                if (tasks.Count > 0)
-                {
-                    await Task.WhenAll(tasks);
-                }
                 else
                 {
-                    logger.LogInformation("--- No pings to be run");
+                    // Initial ping
+                    tasks.Add(ProcessUrlAsync(db, site, stoppingToken));
                 }
+            }
 
-                logger.LogInformation("--- All tasks completed. Running again in 1 minute.");
-                await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
-            }
-            catch (OperationCanceledException)
+            // Make sure everything has completed before waiting
+            if (tasks.Count > 0)
             {
-                logger.LogInformation("--- Operation canceled. Stopping background task.");
-                break;
-            }
-            catch (Exception e)
-            {
-                logger.LogError(e, "--- An error occured while processing urls.");
+                await Task.WhenAll(tasks);
             }
         }
-
-        logger.LogInformation("--- Stopping PingBackgroundService");
+        catch (Exception e)
+        {
+            logger.LogError(e, "--- An error occured while processing urls.");
+        }
     }
 
     private async Task ProcessUrlAsync(StatusMonitorDb db, Site site, CancellationToken cancellationToken)

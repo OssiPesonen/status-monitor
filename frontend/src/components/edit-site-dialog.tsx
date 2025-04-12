@@ -8,6 +8,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import * as DialogPrimitive from "@radix-ui/react-dialog"
 import {
 	Select,
 	SelectContent,
@@ -15,16 +16,31 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { siteDataKey } from "./site-list";
+import type { Site } from "@/types";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import Spinner from "./spinner";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import { siteDataKey } from "./site-list";
 
-const AddSiteDialog = () => {
-	const [open, setOpen] = useState(false);
+interface EditSiteDialogParams {
+	site: Site;
+	open: boolean;
+	handleOpenChange: (open: boolean) => void;
+	invalidateQueryKeys?: string[];
+}
+
+const EditSiteDialog = ({ site, open, handleOpenChange, invalidateQueryKeys }: EditSiteDialogParams) => {
 	const queryClient = useQueryClient();
+	const [httpMethod, setHttpMethod] = useState("GET");
+
+	useEffect(() => {
+		if (site) {
+			setHttpMethod(site.httpMethod);
+		}
+	}, [site]);
 
 	const { isPending, mutate: addSiteMutation } = useMutation({
 		mutationFn: (payload: {
@@ -33,8 +49,8 @@ const AddSiteDialog = () => {
 			interval: number;
 			httpMethod?: string;
 		}) => {
-			return fetch(`${process.env.NEXT_PUBLIC_API_URL}/sites`, {
-				method: "POST",
+			return fetch(`${process.env.NEXT_PUBLIC_API_URL}/site/${site.id}`, {
+				method: "PUT",
 				body: JSON.stringify({
 					address: payload.address,
 					name: payload.name,
@@ -49,36 +65,35 @@ const AddSiteDialog = () => {
 			});
 		},
 		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: [siteDataKey] });
-			setOpen(false);
+			queryClient.invalidateQueries({ queryKey: invalidateQueryKeys });
+			handleOpenChange(false);
 		},
 	});
 
 	const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		const formData = new FormData(e.currentTarget);
-		const interval = formData.get('interval') ? Number.parseInt((formData.get('interval') as string)) : 5;
+		const interval = formData.get("interval")
+			? Number.parseInt(formData.get("interval") as string)
+			: 5;
 
 		const payload = {
 			address: formData.get("address")?.toString() ?? "",
 			name: formData.get("name")?.toString() ?? "",
 			httpMethod: formData.get("http_method")?.toString() ?? undefined,
-			interval,
+			interval: interval,
 		};
 
 		addSiteMutation(payload);
 	};
 
 	return (
-		<Dialog open={open} onOpenChange={setOpen}>
-			<DialogTrigger asChild>
-				<Button variant="outline">Add Site</Button>
-			</DialogTrigger>
+		<Dialog open={open} onOpenChange={handleOpenChange}>
 			<DialogContent className="sm:max-w-[425px]">
 				<DialogHeader>
-					<DialogTitle className="mb-4">Add site</DialogTitle>
+					<DialogTitle className="mb-4">Edit site</DialogTitle>
 					<DialogDescription>
-						Set the configurations for a monitorable system or website
+						Edit the configurations for a monitorable system or website
 					</DialogDescription>
 				</DialogHeader>
 				<form onSubmit={onSubmit}>
@@ -86,7 +101,13 @@ const AddSiteDialog = () => {
 						<Label htmlFor="name" className="block mb-2">
 							Name
 						</Label>
-						<Input type="text" id="name" name="name" required />
+						<Input
+							type="text"
+							id="name"
+							name="name"
+							defaultValue={site?.name}
+							required
+						/>
 					</div>
 					<div className="form-field block mb-4">
 						<Label htmlFor="address" className="block mb-2">
@@ -96,6 +117,7 @@ const AddSiteDialog = () => {
 							type="text"
 							id="address"
 							name="address"
+							defaultValue={site?.address}
 							placeholder="https://"
 							required
 						/>
@@ -104,7 +126,7 @@ const AddSiteDialog = () => {
 						<Label htmlFor="http_method" className="block mb-2">
 							HTTP Method
 						</Label>
-						<Select name="http_method" defaultValue="GET">
+						<Select name="http_method" defaultValue="GET" value={httpMethod}>
 							<SelectTrigger className="w-full">
 								<SelectValue placeholder="Select used HTTP method" />
 							</SelectTrigger>
@@ -175,4 +197,4 @@ const AddSiteDialog = () => {
 	);
 };
 
-export default AddSiteDialog;
+export default EditSiteDialog;
